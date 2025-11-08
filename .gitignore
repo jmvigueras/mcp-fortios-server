@@ -34,7 +34,6 @@ venv.bak/
 
 # UV package manager
 .uv/
-uv.lock
 
 # IDE
 .vscode/

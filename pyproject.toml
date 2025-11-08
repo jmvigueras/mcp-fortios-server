@@ -39,12 +39,12 @@ Documentation = "https://github.com/fortidemoscloud/fortios-mcp-server#readme"
 Issues = "https://github.com/fortidemoscloud/fortios-mcp-server/issues"
 Changelog = "https://github.com/fortidemoscloud/fortios-mcp-server/releases"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0", 
-    "black>=23.0.0",
-    "isort>=5.12.0",
-    "flake8>=6.0.0",
-    "mypy>=1.0.0"
+    "black>=25.9.0",
+    "flake8>=7.3.0",
+    "isort>=7.0.0",
+    "mypy>=1.18.2",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
 ]

@@ -7,7 +7,9 @@ Run with:
 
 import json
 import logging
+
 from mcp.server.fastmcp import FastMCP
+
 from .tools import FortiOSTools
 
 # Configure logging
@@ -21,11 +23,12 @@ mcp = FastMCP("FortiOS MCP Server")
 # FIREWALL POLICY TOOLS
 # ===============================
 
+
 @mcp.tool()
 def create_firewall_policy(
     name: str,
     srcintf: str,
-    dstintf: str, 
+    dstintf: str,
     srcaddr: str,
     dstaddr: str,
     service: str,
@@ -35,10 +38,10 @@ def create_firewall_policy(
     fortigate_vdom: str = "root",
     status: str = "enable",
     nat: str = "disable",
-    logtraffic: str = "utm"
+    logtraffic: str = "utm",
 ) -> str:
     """Create a firewall policy in FortiGate.
-    
+
     Args:
         name: Policy name
         srcintf: Source interface names (comma-separated)
@@ -55,28 +58,39 @@ def create_firewall_policy(
         logtraffic: Log traffic (all, utm, or disable)
     """
     # Convert comma-separated strings to lists
-    srcintf_list = [s.strip() for s in srcintf.split(',')]
-    dstintf_list = [s.strip() for s in dstintf.split(',')]
-    srcaddr_list = [s.strip() for s in srcaddr.split(',')]
-    dstaddr_list = [s.strip() for s in dstaddr.split(',')]
-    service_list = [s.strip() for s in service.split(',')]
-    
+    srcintf_list = [s.strip() for s in srcintf.split(",")]
+    dstintf_list = [s.strip() for s in dstintf.split(",")]
+    srcaddr_list = [s.strip() for s in srcaddr.split(",")]
+    dstaddr_list = [s.strip() for s in dstaddr.split(",")]
+    service_list = [s.strip() for s in service.split(",")]
+
     result = FortiOSTools.create_firewall_policy(
-        fortigate_url, fortigate_token, fortigate_vdom,
-        name, srcintf_list, dstintf_list, srcaddr_list, dstaddr_list, service_list, action,
-        status, nat, logtraffic
+        fortigate_url,
+        fortigate_token,
+        fortigate_vdom,
+        name,
+        srcintf_list,
+        dstintf_list,
+        srcaddr_list,
+        dstaddr_list,
+        service_list,
+        action,
+        status,
+        nat,
+        logtraffic,
     )
     return json.dumps(result, indent=2)
+
 
 @mcp.tool()
 def get_firewall_policies(
     fortigate_url: str,
     fortigate_token: str,
     fortigate_vdom: str = "root",
-    policy_id: str = ""
+    policy_id: str = "",
 ) -> str:
     """Get firewall policies from FortiGate.
-    
+
     Args:
         fortigate_url: FortiGate URL (e.g., https://192.168.1.99)
         fortigate_token: FortiGate API token
@@ -89,9 +103,11 @@ def get_firewall_policies(
     )
     return json.dumps(result, indent=2)
 
+
 # ===============================
 # ADDRESS OBJECT TOOLS
 # ===============================
+
 
 @mcp.tool()
 def create_address(
@@ -105,10 +121,10 @@ def create_address(
     end_ip: str = "",
     fqdn: str = "",
     comment: str = "",
-    color: int = 0
+    color: int = 0,
 ) -> str:
     """Create an address object in FortiGate
-    
+
     Args:
         name: Address object name
         address_type: Type of address (ipmask, iprange, fqdn)
@@ -124,22 +140,32 @@ def create_address(
     start_ip_param = start_ip if start_ip else None
     end_ip_param = end_ip if end_ip else None
     fqdn_param = fqdn if fqdn else None
-    
+
     result = FortiOSTools.create_address(
-        fortigate_url, fortigate_token, fortigate_vdom,
-        name, address_type, subnet_param, start_ip_param, end_ip_param, fqdn_param, comment, color
+        fortigate_url,
+        fortigate_token,
+        fortigate_vdom,
+        name,
+        address_type,
+        subnet_param,
+        start_ip_param,
+        end_ip_param,
+        fqdn_param,
+        comment,
+        color,
     )
     return json.dumps(result, indent=2)
+
 
 @mcp.tool()
 def get_addresses(
     fortigate_url: str,
     fortigate_token: str,
     fortigate_vdom: str = "root",
-    address_name: str = ""
+    address_name: str = "",
 ) -> str:
     """Get address objects from FortiGate.
-    
+
     Args:
         fortigate_url: FortiGate URL (e.g., https://192.168.1.99)
         fortigate_token: FortiGate API token
@@ -152,12 +178,10 @@ def get_addresses(
     )
     return json.dumps(result, indent=2)
 
+
 @mcp.tool()
 def delete_address(
-    name: str,
-    fortigate_url: str,
-    fortigate_token: str,
-    fortigate_vdom: str = "root"
+    name: str, fortigate_url: str, fortigate_token: str, fortigate_vdom: str = "root"
 ) -> str:
     """Delete an address object from FortiGate"""
     result = FortiOSTools.delete_address(
@@ -165,9 +189,11 @@ def delete_address(
     )
     return json.dumps(result, indent=2)
 
+
 # ===============================
 # ADDRESS GROUP TOOLS
 # ===============================
+
 
 @mcp.tool()
 def create_address_group(
@@ -177,10 +203,10 @@ def create_address_group(
     fortigate_token: str,
     fortigate_vdom: str = "root",
     comment: str = "",
-    color: int = 0
+    color: int = 0,
 ) -> str:
     """Create an address group in FortiGate that contains existing address objects.
-    
+
     Args:
         name: Address group name
         members: Existing address object names (comma-separated)
@@ -191,23 +217,29 @@ def create_address_group(
         color: Color for the address group (0-32)
     """
     # Convert comma-separated string to list
-    members_list = [m.strip() for m in members.split(',')]
-    
+    members_list = [m.strip() for m in members.split(",")]
+
     result = FortiOSTools.create_address_group(
-        fortigate_url, fortigate_token, fortigate_vdom,
-        name, members_list, comment, color
+        fortigate_url,
+        fortigate_token,
+        fortigate_vdom,
+        name,
+        members_list,
+        comment,
+        color,
     )
     return json.dumps(result, indent=2)
+
 
 @mcp.tool()
 def get_address_groups(
     fortigate_url: str,
     fortigate_token: str,
     fortigate_vdom: str = "root",
-    group_name: str = ""
+    group_name: str = "",
 ) -> str:
     """Get address groups from FortiGate.
-    
+
     Args:
         fortigate_url: FortiGate URL (e.g., https://192.168.1.99)
         fortigate_token: FortiGate API token
@@ -220,12 +252,10 @@ def get_address_groups(
     )
     return json.dumps(result, indent=2)
 
+
 @mcp.tool()
 def delete_address_group(
-    name: str,
-    fortigate_url: str,
-    fortigate_token: str,
-    fortigate_vdom: str = "root"
+    name: str, fortigate_url: str, fortigate_token: str, fortigate_vdom: str = "root"
 ) -> str:
     """Delete an address group from FortiGate"""
     result = FortiOSTools.delete_address_group(
@@ -233,9 +263,11 @@ def delete_address_group(
     )
     return json.dumps(result, indent=2)
 
+
 # ===============================
 # VIP (VIRTUAL IP) TOOLS
 # ===============================
+
 
 @mcp.tool()
 def create_vip(
@@ -250,10 +282,10 @@ def create_vip(
     extport: str = "",
     mappedport: str = "",
     protocol: str = "tcp",
-    comment: str = ""
+    comment: str = "",
 ) -> str:
     """Create a Virtual IP (VIP) object in FortiGate.
-    
+
     Args:
         name: VIP object name
         extip: External IP address
@@ -269,28 +301,38 @@ def create_vip(
         comment: Optional comment
     """
     # Convert comma-separated string to list
-    mappedip_list = [ip.strip() for ip in mappedip.split(',')]
-    
+    mappedip_list = [ip.strip() for ip in mappedip.split(",")]
+
     # Handle optional port parameters
     extport_param = extport if extport else None
     mappedport_param = mappedport if mappedport else None
-    
+
     result = FortiOSTools.create_vip(
-        fortigate_url, fortigate_token, fortigate_vdom,
-        name, extip, mappedip_list, extintf, portforward, 
-        extport_param, mappedport_param, protocol, comment
+        fortigate_url,
+        fortigate_token,
+        fortigate_vdom,
+        name,
+        extip,
+        mappedip_list,
+        extintf,
+        portforward,
+        extport_param,
+        mappedport_param,
+        protocol,
+        comment,
     )
     return json.dumps(result, indent=2)
+
 
 @mcp.tool()
 def get_vips(
     fortigate_url: str,
     fortigate_token: str,
     fortigate_vdom: str = "root",
-    vip_name: str = ""
+    vip_name: str = "",
 ) -> str:
     """Get VIP objects from FortiGate.
-    
+
     Args:
         fortigate_url: FortiGate URL (e.g., https://192.168.1.99)
         fortigate_token: FortiGate API token
@@ -303,17 +345,16 @@ def get_vips(
     )
     return json.dumps(result, indent=2)
 
+
 # ===============================
 # DEBUG TOOLS
 # ===============================
 @mcp.tool()
-def ping_fortigate(
-    fortigate_url: str,
-    fortigate_token: str
-) -> str:
+def ping_fortigate(fortigate_url: str, fortigate_token: str) -> str:
     """Ping the FortiGate to check connectivity."""
     result = FortiOSTools.ping_fortigate(fortigate_url, fortigate_token)
     return json.dumps(result, indent=2)
+
 
 # Create the ASGI app for HTTP server using the streamable HTTP app
 app = mcp.streamable_http_app()
