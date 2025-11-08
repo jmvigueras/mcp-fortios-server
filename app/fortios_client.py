@@ -16,7 +16,12 @@ class FortiOSClient:
     """FortiOS API client for MCP server"""
 
     def __init__(
-        self, url: str, token: str, vdom: str = "root", verify_ssl: bool = False, timeout: int = 10
+        self,
+        url: str,
+        token: str,
+        vdom: str = "root",
+        verify_ssl: bool = False,
+        timeout: int = 10,
     ):
         """
         Initialize FortiOS API client
@@ -67,14 +72,24 @@ class FortiOSClient:
 
         try:
             if method.upper() == "GET":
-                response = self.session.get(url, params=params, verify=self.verify_ssl, timeout=self.timeout)
+                response = self.session.get(
+                    url, params=params, verify=self.verify_ssl, timeout=self.timeout
+                )
             elif method.upper() == "POST":
                 response = self.session.post(
-                    url, params=params, json=data, verify=self.verify_ssl, timeout=self.timeout
+                    url,
+                    params=params,
+                    json=data,
+                    verify=self.verify_ssl,
+                    timeout=self.timeout,
                 )
             elif method.upper() == "PUT":
                 response = self.session.put(
-                    url, params=params, json=data, verify=self.verify_ssl, timeout=self.timeout
+                    url,
+                    params=params,
+                    json=data,
+                    verify=self.verify_ssl,
+                    timeout=self.timeout,
                 )
             elif method.upper() == "DELETE":
                 response = self.session.delete(
