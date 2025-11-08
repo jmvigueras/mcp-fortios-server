@@ -10,6 +10,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 # Set environment variables
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
+ENV UV_CACHE_DIR=/tmp/.uv-cache
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 

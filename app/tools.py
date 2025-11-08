@@ -19,6 +19,18 @@ class FortiOSTools:
         return FortiOSClient(url, token, vdom)
 
     @staticmethod
+    def _check_connectivity(url: str, token: str, vdom: str = "root") -> Dict[str, Any]:
+        """Check FortiGate connectivity before executing tools"""
+        ping_result = FortiOSTools.ping_fortigate(url, token, vdom)
+        if not ping_result["success"]:
+            return {
+                "success": False,
+                "message": f"FortiGate not reachable: {ping_result['message']}",
+                "details": ping_result["details"],
+            }
+        return {"success": True, "message": "Connectivity verified"}
+
+    @staticmethod
     def ping_fortigate(url: str, token: str, vdom: str = "root") -> Dict[str, Any]:
         """Ping the FortiGate to check connectivity."""
         try:
@@ -58,6 +70,11 @@ class FortiOSTools:
         logtraffic: str = "utm",
     ) -> Dict[str, Any]:
         """Create a firewall policy in FortiGate"""
+        # Check connectivity first
+        connectivity = FortiOSTools._check_connectivity(url, token, vdom)
+        if not connectivity["success"]:
+            return connectivity
+
         try:
             client = FortiOSTools.create_client(url, token, vdom)
 
@@ -107,6 +124,11 @@ class FortiOSTools:
         color: int = 0,
     ) -> Dict[str, Any]:
         """Create an address object in FortiGate"""
+        # Check connectivity first
+        connectivity = FortiOSTools._check_connectivity(url, token, vdom)
+        if not connectivity["success"]:
+            return connectivity
+
         try:
             client = FortiOSTools.create_client(url, token, vdom)
 
@@ -171,6 +193,11 @@ class FortiOSTools:
         color: int = 0,
     ) -> Dict[str, Any]:
         """Create an address group in FortiGate"""
+        # Check connectivity first
+        connectivity = FortiOSTools._check_connectivity(url, token, vdom)
+        if not connectivity["success"]:
+            return connectivity
+
         try:
             client = FortiOSTools.create_client(url, token, vdom)
 
@@ -222,6 +249,11 @@ class FortiOSTools:
         comment: str = "",
     ) -> Dict[str, Any]:
         """Create a Virtual IP (VIP) object in FortiGate"""
+        # Check connectivity first
+        connectivity = FortiOSTools._check_connectivity(url, token, vdom)
+        if not connectivity["success"]:
+            return connectivity
+
         try:
             client = FortiOSTools.create_client(url, token, vdom)
 
@@ -262,6 +294,11 @@ class FortiOSTools:
         url: str, token: str, vdom: str, policy_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get firewall policies from FortiGate"""
+        # Check connectivity first
+        connectivity = FortiOSTools._check_connectivity(url, token, vdom)
+        if not connectivity["success"]:
+            return connectivity
+
         try:
             client = FortiOSTools.create_client(url, token, vdom)
 
@@ -299,6 +336,11 @@ class FortiOSTools:
         url: str, token: str, vdom: str, address_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get address objects from FortiGate"""
+        # Check connectivity first
+        connectivity = FortiOSTools._check_connectivity(url, token, vdom)
+        if not connectivity["success"]:
+            return connectivity
+
         try:
             client = FortiOSTools.create_client(url, token, vdom)
 
@@ -336,6 +378,11 @@ class FortiOSTools:
         url: str, token: str, vdom: str, group_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get address groups from FortiGate"""
+        # Check connectivity first
+        connectivity = FortiOSTools._check_connectivity(url, token, vdom)
+        if not connectivity["success"]:
+            return connectivity
+
         try:
             client = FortiOSTools.create_client(url, token, vdom)
 
@@ -373,6 +420,11 @@ class FortiOSTools:
         url: str, token: str, vdom: str, vip_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """Get VIP objects from FortiGate"""
+        # Check connectivity first
+        connectivity = FortiOSTools._check_connectivity(url, token, vdom)
+        if not connectivity["success"]:
+            return connectivity
+
         try:
             client = FortiOSTools.create_client(url, token, vdom)
 
@@ -408,6 +460,11 @@ class FortiOSTools:
     @staticmethod
     def delete_address(url: str, token: str, vdom: str, name: str) -> Dict[str, Any]:
         """Delete an address object from FortiGate"""
+        # Check connectivity first
+        connectivity = FortiOSTools._check_connectivity(url, token, vdom)
+        if not connectivity["success"]:
+            return connectivity
+
         try:
             client = FortiOSTools.create_client(url, token, vdom)
 
@@ -433,6 +490,11 @@ class FortiOSTools:
         url: str, token: str, vdom: str, name: str
     ) -> Dict[str, Any]:
         """Delete an address group from FortiGate"""
+        # Check connectivity first
+        connectivity = FortiOSTools._check_connectivity(url, token, vdom)
+        if not connectivity["success"]:
+            return connectivity
+
         try:
             client = FortiOSTools.create_client(url, token, vdom)
 
