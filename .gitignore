@@ -1,0 +1,121 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.cache/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# UV package manager
+.uv/
+uv.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Docker
+.dockerignore
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+secrets/
+config/secrets.yaml
+
+# FortiOS specific
+# Add patterns for any FortiOS configuration files you don't want to commit
+fortios_config.yaml
+fortigate_tokens.txt
+*.backup
+*.conf
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+/*.priv/*
+*.priv
+/priv/*
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Local development
+local/
+tmp/
+temp/
+test_data/
+examples/private/
+
+# Kubernetes secrets (if any)
+k8s-secrets.yaml
+*-secret.yaml
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory (if you add any JS tooling)
+.npm
+
+# Optional REPL history
+.node_repl_history
