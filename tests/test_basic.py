@@ -55,7 +55,7 @@ class TestFortiOSClient:
         assert client.url == "https://test.com"
         assert client.token == "token123"
         assert client.vdom == "root"
-        assert client.verify_ssl is True
+        assert client.verify_ssl is False  # Default is False for FortiOS self-signed certs
     
     def test_client_initialization_no_ssl(self):
         """Test client initialization without SSL verification"""

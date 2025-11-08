@@ -119,7 +119,7 @@ class TestToolParameters:
 class TestFortiOSIntegration:
     """Integration tests with FortiOS (requires mock or real device)"""
     
-    @mock.patch('app.fortios_client.FortiOSClient')
+    @mock.patch('app.tools.FortiOSClient')
     def test_ping_tool_mock(self, mock_client_class):
         """Test ping tool with mocked FortiOS client"""
         from app.tools import FortiOSTools
