@@ -90,4 +90,4 @@ git push origin "${TAG_VERSION}"
 
 echo -e "${GREEN}✅ Release ${TAG_VERSION} created successfully!${NC}"
 echo -e "${GREEN}🚀 GitHub Actions will now build and publish the Docker image.${NC}"
-echo -e "${GREEN}📦 Check DockerHub for: your-username/mcp-fortios-server:${NEW_VERSION}${NC}"
+echo -e "${GREEN}📦 Check DockerHub for: your-username/mcp-fortios-server:${TAG_VERSION}${NC}"

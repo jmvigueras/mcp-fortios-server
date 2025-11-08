@@ -175,9 +175,7 @@ This project follows [Semantic Versioning](https://semver.org/) using the format
 #### Docker Image Tags
 
 When you create a version tag (e.g., `v1.0.1`), the CI/CD pipeline automatically builds and pushes Docker images with these tags:
-- `your-username/mcp-fortios-server:1.0.1` (full version)
-- `your-username/mcp-fortios-server:1.0` (major.minor)
-- `your-username/mcp-fortios-server:1` (major)
+- `your-username/mcp-fortios-server:v1.0.1` (exact version tag)
 - `your-username/mcp-fortios-server:latest` (if from main branch)
 
 ### Logs
