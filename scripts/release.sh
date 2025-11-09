@@ -11,10 +11,24 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Get current version from pyproject.toml
-CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+# Get current version from latest Git tag (the source of truth)
+LATEST_TAG=$(git tag -l --sort=-version:refname | head -n1)
+if [ -z "$LATEST_TAG" ]; then
+    echo -e "${RED}Error: No git tags found. Please create an initial tag (e.g., v1.0.0) first.${NC}"
+    exit 1
+fi
 
-echo -e "${GREEN}Current version: ${CURRENT_VERSION}${NC}"
+CURRENT_VERSION=${LATEST_TAG#v}  # Remove 'v' prefix
+FILE_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+
+echo -e "${GREEN}Latest Git tag: ${LATEST_TAG} (${CURRENT_VERSION})${NC}"
+echo -e "${GREEN}File version: ${FILE_VERSION}${NC}"
+
+# Warn if file version doesn't match tag version
+if [ "$CURRENT_VERSION" != "$FILE_VERSION" ]; then
+    echo -e "${YELLOW}Warning: File version (${FILE_VERSION}) differs from latest tag (${CURRENT_VERSION})${NC}"
+    echo -e "${YELLOW}Using latest tag (${CURRENT_VERSION}) as the base for increment${NC}"
+fi
 
 # Check if working directory is clean
 if ! git diff-index --quiet HEAD --; then
