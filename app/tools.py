@@ -35,7 +35,7 @@ class FortiOSTools:
         """Ping the FortiGate to check connectivity."""
         try:
             client = FortiOSTools.create_client(url, token, vdom)
-            result = client.get("monitor/system/ping")
+            result = client.get("monitor/system/status")
             return {
                 "success": result.get("http_status") == 200,
                 "message": (

@@ -16,6 +16,12 @@ CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/
 
 echo -e "${GREEN}Current version: ${CURRENT_VERSION}${NC}"
 
+# Check if working directory is clean
+if ! git diff-index --quiet HEAD --; then
+    echo -e "${RED}Error: Working directory is not clean. Please commit or stash changes first.${NC}"
+    exit 1
+fi
+
 # Function to increment version
 increment_version() {
     local version=$1
@@ -77,9 +83,25 @@ fi
 echo -e "${GREEN}Updating pyproject.toml...${NC}"
 sed -i '' "s/^version = \".*\"/version = \"${NEW_VERSION}\"/" pyproject.toml
 
-# Commit version change
-echo -e "${GREEN}Committing version change...${NC}"
-git add pyproject.toml
+# Update app/__init__.py
+echo -e "${GREEN}Updating app/__init__.py...${NC}"
+sed -i '' "s/^__version__ = \".*\"/__version__ = \"${NEW_VERSION}\"/" app/__init__.py
+
+# Regenerate lock file
+echo -e "${GREEN}Regenerating uv.lock file...${NC}"
+uv lock --upgrade
+
+# Run simple tests
+echo -e "${GREEN}Running tests...${NC}"
+if command -v uv >/dev/null 2>&1; then
+    uv run pytest tests/test_basic.py -v
+else
+    echo -e "${YELLOW}Warning: uv not found, skipping tests${NC}"
+fi
+
+# Commit version changes
+echo -e "${GREEN}Committing version changes...${NC}"
+git add pyproject.toml app/__init__.py uv.lock
 git commit -m "chore: bump version to ${NEW_VERSION}"
 
 # Create and push tag
@@ -90,4 +112,9 @@ git push origin "${TAG_VERSION}"
 
 echo -e "${GREEN}✅ Release ${TAG_VERSION} created successfully!${NC}"
 echo -e "${GREEN}🚀 GitHub Actions will now build and publish the Docker image.${NC}"
-echo -e "${GREEN}📦 Check DockerHub for: your-username/mcp-fortios-server:${TAG_VERSION}${NC}"
+echo -e "${GREEN}📦 Check DockerHub for: jmvigueras/mcp-fortios-server:${TAG_VERSION}${NC}"
+echo
+echo -e "${GREEN}Release Summary:${NC}"
+echo -e "  • Version: ${CURRENT_VERSION} → ${NEW_VERSION}"
+echo -e "  • Git tag: ${TAG_VERSION}"
+echo -e "  • Files updated: pyproject.toml, app/__init__.py, uv.lock"

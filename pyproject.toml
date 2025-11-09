@@ -1,6 +1,6 @@
 [project]
 name = "mcp-fortios"
-version = "1.0.0"
+version = "1.0.3"
 description = "Model Context Protocol (MCP) server for FortiOS firewall management and operations"
 readme = "README.md"
 license = {text = "MIT"}
