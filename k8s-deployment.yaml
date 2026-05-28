@@ -54,10 +54,13 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
         securityContext:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
-          runAsUser: 1000
+          runAsUser: 999
       volumes:
       - name: tmp-volume
         emptyDir: {}
