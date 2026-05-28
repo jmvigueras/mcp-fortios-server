@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: mcp-fortios-server
-        image: jviguerasfortinet/mcp-fortios-server:1.0.8
+        image: jviguerasfortinet/mcp-fortios-server:v1.0.9
         ports:
         - containerPort: 8000
         env:
