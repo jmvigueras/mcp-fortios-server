@@ -7,8 +7,12 @@ Run with:
 
 import json
 import logging
+from contextlib import asynccontextmanager
 
 from mcp.server.fastmcp import FastMCP
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
+from starlette.routing import Mount, Route
 
 from .tools import FortiOSTools
 
@@ -18,6 +22,17 @@ logger = logging.getLogger(__name__)
 
 # Create MCP server
 mcp = FastMCP("FortiOS MCP Server")
+
+
+# ===============================
+# HEALTH CHECK ENDPOINT
+# ===============================
+
+
+async def health_check(request):
+    """Health check endpoint for liveness/readiness probes"""
+    return JSONResponse({"status": "healthy", "service": "mcp-fortios-server"})
+
 
 # ===============================
 # FIREWALL POLICY TOOLS
@@ -123,12 +138,15 @@ def create_address(
     comment: str = "",
     color: int = 0,
 ) -> str:
-    """Create an address object in FortiGate
+    """Create an address object in FortiGate.
 
     Args:
         name: Address object name
         address_type: Type of address (ipmask, iprange, fqdn)
-        subnet: IP address and netmask (for ipmask type)
+        fortigate_url: FortiGate URL (e.g., https://192.168.1.99)
+        fortigate_token: FortiGate API token
+        fortigate_vdom: FortiGate VDOM (default: root)
+        subnet: IP/netmask (for ipmask type, e.g., '192.168.1.0 255.255.255.0' or '192.168.1.0/24')
         start_ip: Start IP (for iprange type)
         end_ip: End IP (for iprange type)
         fqdn: FQDN (for fqdn type)
@@ -183,7 +201,14 @@ def get_addresses(
 def delete_address(
     name: str, fortigate_url: str, fortigate_token: str, fortigate_vdom: str = "root"
 ) -> str:
-    """Delete an address object from FortiGate"""
+    """Delete an address object from FortiGate.
+
+    Args:
+        name: Address object name to delete
+        fortigate_url: FortiGate URL (e.g., https://192.168.1.99)
+        fortigate_token: FortiGate API token
+        fortigate_vdom: FortiGate VDOM (default: root)
+    """
     result = FortiOSTools.delete_address(
         fortigate_url, fortigate_token, fortigate_vdom, name
     )
@@ -257,7 +282,14 @@ def get_address_groups(
 def delete_address_group(
     name: str, fortigate_url: str, fortigate_token: str, fortigate_vdom: str = "root"
 ) -> str:
-    """Delete an address group from FortiGate"""
+    """Delete an address group from FortiGate.
+
+    Args:
+        name: Address group name to delete
+        fortigate_url: FortiGate URL (e.g., https://192.168.1.99)
+        fortigate_token: FortiGate API token
+        fortigate_vdom: FortiGate VDOM (default: root)
+    """
     result = FortiOSTools.delete_address_group(
         fortigate_url, fortigate_token, fortigate_vdom, name
     )
@@ -351,10 +383,31 @@ def get_vips(
 # ===============================
 @mcp.tool()
 def ping_fortigate(fortigate_url: str, fortigate_token: str) -> str:
-    """Ping the FortiGate to check connectivity."""
+    """Ping the FortiGate to check connectivity.
+
+    Args:
+        fortigate_url: FortiGate URL (e.g., https://192.168.1.99)
+        fortigate_token: FortiGate API token
+    """
     result = FortiOSTools.ping_fortigate(fortigate_url, fortigate_token)
     return json.dumps(result, indent=2)
 
 
-# Create the ASGI app for HTTP server using the streamable HTTP app
-app = mcp.streamable_http_app()
+# Create the ASGI app with health check endpoint mounted alongside MCP
+mcp_app = mcp.streamable_http_app()
+
+
+@asynccontextmanager
+async def lifespan(app):
+    """Manage MCP server lifespan within the parent Starlette app"""
+    async with mcp_app.router.lifespan_context(mcp_app):
+        yield
+
+
+app = Starlette(
+    routes=[
+        Route("/health", health_check),
+        Mount("/", app=mcp_app),
+    ],
+    lifespan=lifespan,
+)

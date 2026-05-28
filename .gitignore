@@ -102,6 +102,7 @@ examples/private/
 # Kubernetes secrets (if any)
 k8s-secrets.yaml
 *-secret.yaml
+k8s-networkpolicy.yaml
 
 # Backup files
 *.bak

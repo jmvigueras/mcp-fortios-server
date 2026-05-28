@@ -26,9 +26,9 @@ def test_ping_success(mock_create_client):
     mock_client = Mock()
     mock_client.get.return_value = {"http_status": 200}
     mock_create_client.return_value = mock_client
-    
+
     result = FortiOSTools.ping_fortigate("https://test.com", "token123")
-    
+
     assert result["success"] is True
     mock_client.get.assert_called_once_with("monitor/system/status")
 
@@ -37,9 +37,9 @@ def test_ping_success(mock_create_client):
 def test_ping_failure(mock_create_client):
     """Test ping failure"""
     mock_create_client.side_effect = Exception("Connection failed")
-    
+
     result = FortiOSTools.ping_fortigate("https://test.com", "token123")
-    
+
     assert result["success"] is False
 
 

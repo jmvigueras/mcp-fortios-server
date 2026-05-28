@@ -4,8 +4,9 @@ FROM python:3.13-slim
 # Set working directory
 WORKDIR /app
 
-# Install uv
+# Install uv and curl (for health checks)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
 ENV UV_COMPILE_BYTECODE=1
@@ -35,9 +36,9 @@ USER mcpuser
 # Expose port (default for FastMCP/Starlette)
 EXPOSE 8000
 
-# Health check - disabled until we confirm the correct endpoint
-# HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-#     CMD curl -f http://localhost:8000/health || exit 1
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # Run the server using uvicorn
 CMD ["uv", "run", "uvicorn", "app.server:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -2,12 +2,144 @@
 FortiOS Tools Implementation for MCP Server
 """
 
+import ipaddress
 import logging
+import re
 from typing import Any, Dict, List, Optional
+from urllib.parse import quote
 
 from .fortios_client import FortiOSClient
 
 logger = logging.getLogger(__name__)
+
+# Validation patterns
+# FortiGate resource names: alphanumeric, spaces, hyphens, underscores, dots
+SAFE_RESOURCE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9 _.\-]+$")
+VALID_ACTIONS = {"accept", "deny"}
+VALID_ADDRESS_TYPES = {"ipmask", "iprange", "fqdn"}
+VALID_STATUSES = {"enable", "disable"}
+VALID_NAT_OPTIONS = {"enable", "disable"}
+VALID_LOGTRAFFIC_OPTIONS = {"all", "utm", "disable"}
+VALID_PORTFORWARD_OPTIONS = {"enable", "disable"}
+VALID_PROTOCOLS = {"tcp", "udp", "sctp"}
+MAX_COLOR_VALUE = 32
+MIN_COLOR_VALUE = 0
+
+
+class ValidationError(Exception):
+    """Raised when input validation fails"""
+
+    pass
+
+
+def _validate_resource_name(name: str, field_name: str = "name") -> str:
+    """
+    Validate and sanitize a resource name for use in API URL paths.
+
+    Args:
+        name: The resource name to validate
+        field_name: Name of the field for error messages
+
+    Returns:
+        URL-encoded resource name safe for use in paths
+
+    Raises:
+        ValidationError: If the name contains dangerous patterns
+    """
+    if not name or not name.strip():
+        raise ValidationError(f"{field_name} cannot be empty")
+
+    name = name.strip()
+
+    # Block path traversal attempts
+    if ".." in name or "/" in name or "\\" in name:
+        raise ValidationError(
+            f"{field_name} contains invalid characters (path traversal not allowed)"
+        )
+
+    # URL-encode the name for safe use in URL paths
+    return quote(name, safe="")
+
+
+def _validate_color(color: int) -> int:
+    """Validate color value is within FortiGate's accepted range (0-32)"""
+    if not isinstance(color, int) or color < MIN_COLOR_VALUE or color > MAX_COLOR_VALUE:
+        raise ValidationError(
+            f"color must be an integer between {MIN_COLOR_VALUE} and {MAX_COLOR_VALUE}"
+        )
+    return color
+
+
+def _validate_action(action: str) -> str:
+    """Validate firewall policy action"""
+    action = action.strip().lower()
+    if action not in VALID_ACTIONS:
+        raise ValidationError(
+            f"action must be one of: {', '.join(sorted(VALID_ACTIONS))}"
+        )
+    return action
+
+
+def _validate_address_type(address_type: str) -> str:
+    """Validate address type"""
+    address_type = address_type.strip().lower()
+    if address_type not in VALID_ADDRESS_TYPES:
+        raise ValidationError(
+            f"address_type must be one of: {', '.join(sorted(VALID_ADDRESS_TYPES))}"
+        )
+    return address_type
+
+
+def _validate_subnet(subnet: str) -> str:
+    """Validate subnet format (IP/mask or IP mask)"""
+    subnet = subnet.strip()
+    # FortiGate accepts "x.x.x.x y.y.y.y" (space-separated) or "x.x.x.x/prefix"
+    try:
+        if "/" in subnet:
+            ipaddress.ip_network(subnet, strict=False)
+        else:
+            # Space-separated IP and mask
+            parts = subnet.split()
+            if len(parts) == 2:
+                ipaddress.ip_address(parts[0])
+                ipaddress.ip_address(parts[1])
+            else:
+                raise ValueError("Invalid subnet format")
+    except (ValueError, TypeError) as e:
+        raise ValidationError(f"Invalid subnet format '{subnet}': {e}")
+    return subnet
+
+
+def _validate_ip(ip: str, field_name: str = "ip") -> str:
+    """Validate an IP address"""
+    ip = ip.strip()
+    try:
+        ipaddress.ip_address(ip)
+    except (ValueError, TypeError):
+        raise ValidationError(f"Invalid IP address for {field_name}: '{ip}'")
+    return ip
+
+
+def _validate_fqdn(fqdn: str) -> str:
+    """Validate FQDN format"""
+    fqdn = fqdn.strip()
+    # Basic FQDN validation: labels separated by dots
+    fqdn_pattern = re.compile(
+        r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*\.[A-Za-z]{2,}$"
+    )
+    if not fqdn_pattern.match(fqdn):
+        raise ValidationError(f"Invalid FQDN format: '{fqdn}'")
+    return fqdn
+
+
+def _validate_choice(value: str, valid_options: set, field_name: str) -> str:
+    """Validate a value against a set of valid options"""
+    value = value.strip().lower()
+    if value not in valid_options:
+        raise ValidationError(
+            f"{field_name} must be one of: {', '.join(sorted(valid_options))}"
+        )
+    return value
 
 
 class FortiOSTools:
@@ -39,9 +171,9 @@ class FortiOSTools:
             return {
                 "success": result.get("http_status") == 200,
                 "message": (
-                    "Ping successful"
+                    "FortiGate is reachable"
                     if result.get("http_status") == 200
-                    else "Ping failed"
+                    else "FortiGate is unreachable"
                 ),
                 "details": result,
             }
@@ -76,6 +208,14 @@ class FortiOSTools:
             return connectivity
 
         try:
+            # Validate inputs
+            action = _validate_action(action)
+            status = _validate_choice(status, VALID_STATUSES, "status")
+            nat = _validate_choice(nat, VALID_NAT_OPTIONS, "nat")
+            logtraffic = _validate_choice(
+                logtraffic, VALID_LOGTRAFFIC_OPTIONS, "logtraffic"
+            )
+
             client = FortiOSTools.create_client(url, token, vdom)
 
             policy_data = {
@@ -101,6 +241,12 @@ class FortiOSTools:
                 "details": result,
             }
 
+        except ValidationError as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "details": {},
+            }
         except Exception as e:
             logger.error(f"Error creating firewall policy: {e}")
             return {
@@ -130,9 +276,17 @@ class FortiOSTools:
             return connectivity
 
         try:
+            # Validate inputs
+            address_type = _validate_address_type(address_type)
+            color = _validate_color(color)
+
             client = FortiOSTools.create_client(url, token, vdom)
 
-            address_data = {"name": name, "color": str(color)}
+            address_data = {
+                "name": name,
+                "type": address_type,
+                "color": color,
+            }
 
             if comment:
                 address_data["comment"] = comment
@@ -143,6 +297,7 @@ class FortiOSTools:
                         "success": False,
                         "message": "subnet is required for ipmask type",
                     }
+                subnet = _validate_subnet(subnet)
                 address_data["subnet"] = subnet
             elif address_type == "iprange":
                 if not start_ip or not end_ip:
@@ -150,6 +305,8 @@ class FortiOSTools:
                         "success": False,
                         "message": "start_ip and end_ip are required for iprange type",
                     }
+                start_ip = _validate_ip(start_ip, "start_ip")
+                end_ip = _validate_ip(end_ip, "end_ip")
                 address_data["start-ip"] = start_ip
                 address_data["end-ip"] = end_ip
             elif address_type == "fqdn":
@@ -158,12 +315,8 @@ class FortiOSTools:
                         "success": False,
                         "message": "fqdn is required for fqdn type",
                     }
+                fqdn = _validate_fqdn(fqdn)
                 address_data["fqdn"] = fqdn
-            else:
-                return {
-                    "success": False,
-                    "message": f"Unsupported address type: {address_type}",
-                }
 
             logger.info(f"Creating address object: {name}")
             result = client.post("cmdb/firewall/address", address_data)
@@ -174,6 +327,12 @@ class FortiOSTools:
                 "details": result,
             }
 
+        except ValidationError as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "details": {},
+            }
         except Exception as e:
             logger.error(f"Error creating address object: {e}")
             return {
@@ -199,7 +358,8 @@ class FortiOSTools:
             return connectivity
 
         try:
-            client = FortiOSTools.create_client(url, token, vdom)
+            # Validate inputs
+            color = _validate_color(color)
 
             if not members:
                 return {
@@ -207,16 +367,18 @@ class FortiOSTools:
                     "message": "At least one member address is required",
                 }
 
+            client = FortiOSTools.create_client(url, token, vdom)
+
             group_data = {
                 "name": name,
                 "member": [{"name": member} for member in members],
-                "color": str(color),
+                "color": color,
             }
 
             if comment:
                 group_data["comment"] = comment
 
-            logger.info(f"Creating address group: {name} with members: {members}")
+            logger.info(f"Creating address group: {name}")
             result = client.post("cmdb/firewall/addrgrp", group_data)
 
             return {
@@ -225,6 +387,12 @@ class FortiOSTools:
                 "details": result,
             }
 
+        except ValidationError as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "details": {},
+            }
         except Exception as e:
             logger.error(f"Error creating address group: {e}")
             return {
@@ -255,6 +423,15 @@ class FortiOSTools:
             return connectivity
 
         try:
+            # Validate inputs
+            portforward = _validate_choice(
+                portforward, VALID_PORTFORWARD_OPTIONS, "portforward"
+            )
+            protocol = _validate_choice(protocol, VALID_PROTOCOLS, "protocol")
+            _validate_ip(extip, "extip")
+            for ip in mappedip:
+                _validate_ip(ip, "mappedip")
+
             client = FortiOSTools.create_client(url, token, vdom)
 
             vip_data = {
@@ -265,9 +442,10 @@ class FortiOSTools:
                 "portforward": portforward,
             }
 
-            if extport and mappedport:
+            if portforward == "enable" and extport and mappedport:
                 vip_data["extport"] = extport
                 vip_data["mappedport"] = mappedport
+                vip_data["protocol"] = protocol
 
             if comment:
                 vip_data["comment"] = comment
@@ -281,6 +459,12 @@ class FortiOSTools:
                 "details": result,
             }
 
+        except ValidationError as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "details": {},
+            }
         except Exception as e:
             logger.error(f"Error creating VIP object: {e}")
             return {
@@ -303,7 +487,8 @@ class FortiOSTools:
             client = FortiOSTools.create_client(url, token, vdom)
 
             if policy_id:
-                endpoint = f"cmdb/firewall/policy/{policy_id}"
+                safe_id = _validate_resource_name(policy_id, "policy_id")
+                endpoint = f"cmdb/firewall/policy/{safe_id}"
                 logger.info(f"Getting firewall policy: {policy_id}")
             else:
                 endpoint = "cmdb/firewall/policy"
@@ -322,6 +507,13 @@ class FortiOSTools:
                 "details": result,
             }
 
+        except ValidationError as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "data": [],
+                "details": {},
+            }
         except Exception as e:
             logger.error(f"Error getting firewall policies: {e}")
             return {
@@ -345,7 +537,8 @@ class FortiOSTools:
             client = FortiOSTools.create_client(url, token, vdom)
 
             if address_name:
-                endpoint = f"cmdb/firewall/address/{address_name}"
+                safe_name = _validate_resource_name(address_name, "address_name")
+                endpoint = f"cmdb/firewall/address/{safe_name}"
                 logger.info(f"Getting address object: {address_name}")
             else:
                 endpoint = "cmdb/firewall/address"
@@ -364,6 +557,13 @@ class FortiOSTools:
                 "details": result,
             }
 
+        except ValidationError as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "data": [],
+                "details": {},
+            }
         except Exception as e:
             logger.error(f"Error getting address objects: {e}")
             return {
@@ -387,7 +587,8 @@ class FortiOSTools:
             client = FortiOSTools.create_client(url, token, vdom)
 
             if group_name:
-                endpoint = f"cmdb/firewall/addrgrp/{group_name}"
+                safe_name = _validate_resource_name(group_name, "group_name")
+                endpoint = f"cmdb/firewall/addrgrp/{safe_name}"
                 logger.info(f"Getting address group: {group_name}")
             else:
                 endpoint = "cmdb/firewall/addrgrp"
@@ -406,6 +607,13 @@ class FortiOSTools:
                 "details": result,
             }
 
+        except ValidationError as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "data": [],
+                "details": {},
+            }
         except Exception as e:
             logger.error(f"Error getting address groups: {e}")
             return {
@@ -429,7 +637,8 @@ class FortiOSTools:
             client = FortiOSTools.create_client(url, token, vdom)
 
             if vip_name:
-                endpoint = f"cmdb/firewall/vip/{vip_name}"
+                safe_name = _validate_resource_name(vip_name, "vip_name")
+                endpoint = f"cmdb/firewall/vip/{safe_name}"
                 logger.info(f"Getting VIP object: {vip_name}")
             else:
                 endpoint = "cmdb/firewall/vip"
@@ -448,6 +657,13 @@ class FortiOSTools:
                 "details": result,
             }
 
+        except ValidationError as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "data": [],
+                "details": {},
+            }
         except Exception as e:
             logger.error(f"Error getting VIP objects: {e}")
             return {
@@ -466,10 +682,11 @@ class FortiOSTools:
             return connectivity
 
         try:
+            safe_name = _validate_resource_name(name, "name")
             client = FortiOSTools.create_client(url, token, vdom)
 
             logger.info(f"Deleting address object: {name}")
-            result = client.delete(f"cmdb/firewall/address/{name}")
+            result = client.delete(f"cmdb/firewall/address/{safe_name}")
 
             return {
                 "success": result.get("http_status") == 200,
@@ -477,6 +694,12 @@ class FortiOSTools:
                 "details": result,
             }
 
+        except ValidationError as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "details": {},
+            }
         except Exception as e:
             logger.error(f"Error deleting address object: {e}")
             return {
@@ -496,10 +719,11 @@ class FortiOSTools:
             return connectivity
 
         try:
+            safe_name = _validate_resource_name(name, "name")
             client = FortiOSTools.create_client(url, token, vdom)
 
             logger.info(f"Deleting address group: {name}")
-            result = client.delete(f"cmdb/firewall/addrgrp/{name}")
+            result = client.delete(f"cmdb/firewall/addrgrp/{safe_name}")
 
             return {
                 "success": result.get("http_status") == 200,
@@ -507,6 +731,12 @@ class FortiOSTools:
                 "details": result,
             }
 
+        except ValidationError as e:
+            return {
+                "success": False,
+                "message": f"Validation error: {str(e)}",
+                "details": {},
+            }
         except Exception as e:
             logger.error(f"Error deleting address group: {e}")
             return {
