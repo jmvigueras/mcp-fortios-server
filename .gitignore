@@ -57,7 +57,7 @@ logs/
 *.log.*
 
 # Docker
-.dockerignore
+# (keep .dockerignore tracked — needed for CI builds)
 
 # Environment variables and secrets
 .env
