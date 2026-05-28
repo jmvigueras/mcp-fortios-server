@@ -81,7 +81,7 @@ class FortiOSClient:
         # Add vdom parameter
         params = {"vdom": self.vdom}
 
-        last_exception = None
+        last_exception: Optional[requests.exceptions.RequestException] = None
         for attempt in range(self.max_retries):
             try:
                 if method.upper() == "GET":

@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: mcp-fortios-server
-        image: jviguerasfortinet/mcp-fortios-server:1.0.7
+        image: jviguerasfortinet/mcp-fortios-server:1.0.8
         ports:
         - containerPort: 8000
         env:
@@ -75,5 +75,6 @@ spec:
   ports:
   - port: 8000
     targetPort: 8000
+    nodePort: 30081
     protocol: TCP
-  type: ClusterIP
+  type: NodePort
