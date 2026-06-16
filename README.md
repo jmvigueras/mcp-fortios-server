@@ -30,14 +30,41 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 {
   "mcpServers": {
     "fortios": {
-      "command": "mcp-remote",
-      "args": ["https://mcp-fortios.fortidemoscloud.com/mcp"]
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp-fortios.fortidemoscloud.com/mcp"
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
     }
   }
 }
 ```
 
-Requires `mcp-remote` installed: `npm install -g mcp-remote`
+## Connect from Gemini CLI
+
+Add to your Gemini settings (`~/.gemini/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "fortios": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp-fortios.fortidemoscloud.com/mcp"
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
+    }
+  }
+}
+```
 
 ## Connect from Kiro / VS Code
 
@@ -56,17 +83,18 @@ Add to `.kiro/settings/mcp.json` or equivalent:
 ## Test with curl
 
 ```bash
-# Initialize session
-curl -s -X POST https://mcp-fortios.fortidemoscloud.com/mcp \
+# 1. Initialize session and capture Mcp-Session-Id from headers
+export SESSION_ID=$(curl -s -i -X POST https://mcp-fortios.fortidemoscloud.com/mcp \
   -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test-curl","version":"1.0"}}}' \
+  | grep -i "mcp-session-id" | awk '{print $2}' | tr -d '\r')
 
-# List tools (use Mcp-Session-Id from previous response headers)
+echo "Session ID: $SESSION_ID"
+
+# 2. List tools using the captured Session ID
 curl -s -X POST https://mcp-fortios.fortidemoscloud.com/mcp \
   -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -H "Mcp-Session-Id: <SESSION_ID>" \
+  -H "Mcp-Session-Id: $SESSION_ID" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
 ```
 
@@ -89,13 +117,12 @@ Server available at `http://localhost:8000/mcp` with health check at `/health`.
 kubectl apply -f k8s-deployment.yaml
 ```
 
-Exposes on NodePort 30081. Image: `jviguerasfortinet/mcp-fortios-server:<version>`
+Exposes on NodePort 30081. Image: `jviguerasfortinet/mcp-fortios-server:v1.0.8`
 
 ## Release
 
 ```bash
 ./scripts/release.sh patch   # 1.0.8 → 1.0.9
-./scripts/release.sh minor   # 1.0.9 → 1.1.0
 ```
 
 Pushing a `v*.*.*` tag triggers the GitHub Actions pipeline to build and push the Docker image to Docker Hub.
